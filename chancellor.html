@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estrategia Nutricional - Jhon Chancellor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Elite Performance -->
+    <!-- Application Structure Plan: Se ha diseñado una aplicación tipo panel de control (dashboard) interactivo en lugar de un documento lineal. La estructura se divide en cinco secciones navegables: "Resumen", "Plan Semanal", "Arsenal", "Suplementos" y "Principios". Esta arquitectura fue elegida para que el atleta pueda acceder rápidamente a la información más relevante (métricas y plan diario) sin tener que desplazarse por el texto científico. El "Plan Semanal" es el núcleo interactivo, permitiendo al usuario seleccionar un día específico para ver solo las comidas correspondientes, evitando la sobrecarga de información. Esta organización prioriza la acción y la usabilidad, presentando la información de manera jerárquca y bajo demanda, lo cual es ideal para el ritmo de un deportista de élite. -->
+    <!-- Visualization & Content Choices: 
+        - Perfil del Atleta: Goal: Informar. Method: Tarjeta de perfil (HTML/Tailwind). Interaction: Estático. Justification: Presenta los datos base del atleta de forma clara y prominente.
+        - Distribución de Macronutrientes: Goal: Informar/Comparar. Viz: Gráfico de Donut (Chart.js/Canvas). Interaction: Tooltips al pasar el ratón. Justification: Visualiza de forma instantánea la proporción de cada macronutriente en la dieta, un dato clave del plan.
+        - Plan de 7 Días: Goal: Organizar. Method: Pestañas interactivas (JS + HTML/Tailwind). Interaction: Click para mostrar el contenido de cada día. Justification: Evita un scroll largo y permite al usuario enfocarse en el día de interés, mejorando la usabilidad diaria.
+        - Tablas de Suplementos y Recetas: Goal: Organizar. Method: Tablas y tarjetas estilizadas (HTML/Tailwind). Interaction: Estático, con pestañas para el "Arsenal". Justification: Estructura la información de forma clara y fácil de consultar. 
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Teko', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 280px;
+            max-height: 35vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 4px solid transparent;
+        }
+        .nav-link.active {
+            border-bottom-color: #059669; /* emerald-600 */
+            color: #059669;
+        }
+        .day-tab.active {
+            background-color: #059669; /* emerald-600 */
+            color: #ffffff;
+        }
+        .day-tab {
+             transition: all 0.2s ease-in-out;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+
+        /* Responsive table styles for mobile */
+        @media (max-width: 768px) {
+            #suplementos-table thead {
+                display: none;
+            }
+            #suplementos-table, #suplementos-table tbody, #suplementos-table tr, #suplementos-table td {
+                display: block;
+                width: 100%;
+            }
+            #suplementos-table tr {
+                margin-bottom: 1rem;
+                border: 1px solid #374151; /* gray-700 */
+                border-radius: 0.5rem;
+                overflow: hidden;
+            }
+            #suplementos-table td {
+                padding-left: 50%;
+                text-align: right;
+                position: relative;
+                border-bottom: 1px solid #374151; /* gray-700 */
+            }
+            #suplementos-table td:last-child {
+                border-bottom: none;
+            }
+            #suplementos-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 45%;
+                padding-left: 1rem;
+                font-weight: bold;
+                text-align: left;
+                color: #10B981; /* emerald-500 */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8 border-b-2 border-emerald-600 pb-4">
+            <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold text-white tracking-wider">ESTRATEGIA NUTRICIONAL DE ALTO RENDIMIENTO</h1>
+            <p class="text-2xl sm:text-3xl md:text-4xl text-emerald-400 font-semibold">JHON CHANCELLOR</p>
+        </header>
+
+        <div class="mb-8 rounded-lg overflow-hidden shadow-2xl">
+            <img src="https://i.postimg.cc/Y923J9Pr/temp-Image8tv-Uk-E.avif" alt="Banner de rendimiento deportivo" class="w-full h-auto object-cover">
+        </div>
+
+        <nav class="bg-gray-800 rounded-lg shadow-lg mb-8 sticky top-2 z-10">
+            <ul class="flex justify-around items-center p-2 text-base sm:text-xl md:text-2xl font-bold tracking-widest">
+                <li><a href="#resumen" class="nav-link p-2 md:p-4 active">RESUMEN</a></li>
+                <li><a href="#plan" class="nav-link p-2 md:p-4">PLAN</a></li>
+                <li><a href="#arsenal" class="nav-link p-2 md:p-4">ARSENAL</a></li>
+                <li><a href="#suplementos" class="nav-link p-2 md:p-4">SUPS</a></li>
+                <li><a href="#principios" class="nav-link p-2 md:p-4">PRINCIPIOS</a></li>
+            </ul>
+        </nav>
+
+        <main>
+            <!-- Sección Resumen -->
+            <section id="resumen" class="content-section active">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl">
+                        <h2 class="text-3xl sm:text-4xl font-bold mb-4 text-emerald-400 border-b border-gray-700 pb-2">PERFIL DEL ATLETA</h2>
+                        <div class="flex flex-col md:flex-row gap-6">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-6 text-xl flex-grow">
+                                <div class="bg-gray-700/50 p-3 rounded-md">
+                                    <p class="text-gray-400 text-base sm:text-lg font-semibold">PESO</p>
+                                    <p class="text-2xl sm:text-3xl font-bold">93.2 <span class="text-base sm:text-lg">kg</span></p>
+                                </div>
+                                <div class="bg-gray-700/50 p-3 rounded-md">
+                                    <p class="text-gray-400 text-base sm:text-lg font-semibold">ALTURA</p>
+                                    <p class="text-2xl sm:text-3xl font-bold">197 <span class="text-base sm:text-lg">cm</span></p>
+                                </div>
+                                <div class="bg-gray-700/50 p-3 rounded-md">
+                                    <p class="text-gray-400 text-base sm:text-lg font-semibold">EDAD</p>
+                                    <p class="text-2xl sm:text-3xl font-bold">33 <span class="text-base sm:text-lg">años</span></p>
+                                </div>
+                                <div class="bg-gray-700/50 p-3 rounded-md">
+                                    <p class="text-gray-400 text-base sm:text-lg font-semibold">% GRASA</p>
+                                    <p class="text-2xl sm:text-3xl font-bold">9 <span class="text-base sm:text-lg">%</span></p>
+                                </div>
+                                 <div class="bg-gray-700/50 p-3 rounded-md">
+                                    <p class="text-gray-400 text-base sm:text-lg font-semibold">% MÚSCULO</p>
+                                    <p class="text-2xl sm:text-3xl font-bold">60.2 <span class="text-base sm:text-lg">%</span></p>
+                                </div>
+                                <div class="bg-emerald-600 text-white p-3 rounded-md">
+                                    <p class="text-emerald-100 text-base sm:text-lg font-semibold">OBJETIVO</p>
+                                    <p class="text-xl sm:text-2xl font-bold">RENDIMIENTO</p>
+                                </div>
+                            </div>
+                             <div class="flex-shrink-0 w-full md:w-48 h-64 mx-auto">
+                                <img src="https://i.postimg.cc/1RBxnVSH/temp-Imagen-Nin-QQ.avif" alt="Foto del atleta" class="rounded-lg object-cover w-full h-full">
+                            </div>
+                        </div>
+                        <p class="mt-6 text-base sm:text-lg text-gray-300">Este plan se centra en la optimización del combustible para el rendimiento y la mejora de la recuperación. El objetivo es satisfacer o superar ligeramente el gasto energético diario para crear un entorno metabólico óptimo para la adaptación al entrenamiento de alta intensidad, minimizando el riesgo de lesiones.</p>
+                    </div>
+
+                    <div class="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl flex flex-col justify-between">
+                        <div>
+                            <h2 class="text-3xl sm:text-4xl font-bold mb-4 text-emerald-400 border-b border-gray-700 pb-2">OBJETIVOS DIARIOS</h2>
+                            <div class="text-center mb-4">
+                                <p class="text-gray-400 text-base sm:text-lg font-semibold">GASTO ENERGÉTICO TOTAL (GET)</p>
+                                <p class="text-5xl sm:text-6xl font-bold text-white">~3,800 <span class="text-xl sm:text-2xl text-emerald-400">kcal</span></p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="macroChart"></canvas>
+                            </div>
+                        </div>
+                         <div class="grid grid-cols-3 gap-2 text-center mt-4">
+                            <div class="bg-blue-500/80 p-2 rounded">
+                                <p class="font-bold text-base sm:text-lg">CARBS</p>
+                                <p class="font-bold text-lg sm:text-xl">652g</p>
+                                <p class="text-xs sm:text-sm">~68%</p>
+                            </div>
+                             <div class="bg-red-500/80 p-2 rounded">
+                                <p class="font-bold text-base sm:text-lg">PROTEÍNA</p>
+                                <p class="font-bold text-lg sm:text-xl">186g</p>
+                                 <p class="text-xs sm:text-sm">~20%</p>
+                            </div>
+                             <div class="bg-yellow-500/80 p-2 rounded">
+                                <p class="font-bold text-base sm:text-lg">GRASAS</p>
+                                <p class="font-bold text-lg sm:text-xl">50g</p>
+                                 <p class="text-xs sm:text-sm">~12%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Sección Plan Semanal -->
+            <section id="plan" class="content-section">
+                <div class="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl">
+                    <h2 class="text-3xl sm:text-4xl font-bold mb-6 text-emerald-400 border-b border-gray-700 pb-2">PLAN DE ALIMENTACIÓN TÁCTICO DE 7 DÍAS</h2>
+                    <p class="text-base sm:text-lg text-gray-300 mb-6">Este plan de comidas está diseñado para ser práctico y sostenible. Prioriza la simplicidad con métodos de cocción sencillos e ingredientes que se pueden preparar con antelación para minimizar el tiempo en la cocina, garantizando la adherencia y el éxito a largo plazo. Selecciona un día para ver el plan de comidas detallado.</p>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:flex lg:flex-wrap lg:justify-center gap-2 mb-6">
+                        <button class="day-tab active text-sm sm:text-lg font-bold py-2 px-3 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="day1">DÍA 1</button>
+                        <button class="day-tab text-sm sm:text-lg font-bold py-2 px-3 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="day2">DÍA 2</button>
+                        <button class="day-tab text-sm sm:text-lg font-bold py-2 px-3 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="day3">DÍA 3</button>
+                        <button class="day-tab text-sm sm:text-lg font-bold py-2 px-3 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="day4">DÍA 4</button>
+                        <button class="day-tab text-sm sm:text-lg font-bold py-2 px-3 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="day5">DÍA 5</button>
+                        <button class="day-tab text-sm sm:text-lg font-bold py-2 px-3 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="day6">DÍA 6</button>
+                        <button class="day-tab text-sm sm:text-lg font-bold py-2 px-3 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="day7">DÍA 7</button>
+                    </div>
+
+                    <div id="meal-plans-container" class="space-y-4">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección Arsenal -->
+            <section id="arsenal" class="content-section">
+                <div class="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl">
+                    <h2 class="text-3xl sm:text-4xl font-bold mb-6 text-emerald-400 border-b border-gray-700 pb-2">ARSENAL DEL ATLETA</h2>
+                    <p class="text-base sm:text-lg text-gray-300 mb-6">Esta sección proporciona recetas prácticas y fáciles de seguir, transformando el plan teórico en opciones tangibles. La incorporación diaria de compuestos antiinflamatorios a través de tés y especias es una estrategia proactiva para la prevención de lesiones y la longevidad de la carrera.</p>
+                     <div class="flex flex-wrap justify-center gap-2 mb-6">
+                        <button class="day-tab active text-base sm:text-lg font-bold py-2 px-4 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="batidos">BATIDOS</button>
+                        <button class="day-tab text-base sm:text-lg font-bold py-2 px-4 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="ensaladas">ENSALADAS</button>
+                        <button class="day-tab text-base sm:text-lg font-bold py-2 px-4 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="infusiones">INFUSIONES</button>
+                        <button class="day-tab text-base sm:text-lg font-bold py-2 px-4 rounded-md bg-gray-700 hover:bg-emerald-700" data-day="especias">ESPECIAS</button>
+                    </div>
+                    <div id="arsenal-container"></div>
+                </div>
+            </section>
+
+            <!-- Sección Suplementos -->
+            <section id="suplementos" class="content-section">
+                <div class="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl">
+                    <h2 class="text-3xl sm:text-4xl font-bold mb-6 text-emerald-400 border-b border-gray-700 pb-2">PROTOCOLO DE SUPLEMENTACIÓN ESTRATÉGICA</h2>
+                    <p class="text-base sm:text-lg text-gray-300 mb-6">La suplementación es una estrategia de gestión de riesgos profesionales. Este protocolo se centra en suplementos seguros, basados en evidencia y certificados por terceros para minimizar cualquier riesgo y maximizar el rendimiento y la recuperación.</p>
+                     <div class="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
+                        <strong class="font-bold text-lg sm:text-xl">ESTÁNDAR NO NEGOCIABLE:</strong>
+                        <span class="block sm:inline text-base sm:text-lg">Uso exclusivo de productos certificados por <span class="font-bold">Informed-Sport</span> o <span class="font-bold">NSF Certified for Sport</span> para evitar sanciones por contaminación con sustancias prohibidas.</span>
+                    </div>
+
+                    <table id="suplementos-table" class="w-full text-left text-base sm:text-lg">
+                        <thead class="bg-gray-700 text-emerald-400 text-lg sm:text-xl uppercase">
+                            <tr>
+                                <th class="p-2 sm:p-4">Suplemento</th>
+                                <th class="p-2 sm:p-4">Función Principal</th>
+                                <th class="p-2 sm:p-4">Protocolo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suplementos-table-body" class="divide-y divide-gray-700 md:divide-y-0">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Sección Principios -->
+            <section id="principios" class="content-section">
+                <div class="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl space-y-8">
+                    <h2 class="text-3xl sm:text-4xl font-bold mb-6 text-emerald-400 border-b border-gray-700 pb-2">PRINCIPIOS FUNDAMENTALES</h2>
+                    <div id="principios-container" class="space-y-6 text-base sm:text-lg text-gray-300 leading-relaxed"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="mt-12 pt-8 border-t-2 border-emerald-600 text-center">
+            <h3 class="text-xl sm:text-2xl font-bold text-white">Plan de alimentación desarrollado por:</h3>
+            <p class="text-2xl sm:text-3xl text-emerald-400 font-semibold mt-1">Lic. Martin Perea</p>
+            <p class="text-lg sm:text-xl text-gray-300">Nutricionista y Dietista - Venezuela</p>
+            <div class="mt-4 text-base sm:text-lg text-gray-400">
+                <p>+58 412-9515503</p>
+                <p>14.martin.perea@gmail.com</p>
+            </div>
+        </footer>
+
+    </div>
+
+<script>
+    const mealPlans = {
+        day1: {
+            title: "Día 1: Intensidad Moderada",
+            meals: [
+                { time: "08:00", name: "Desayuno", items: "Arepa (1 grande de 180g o 2 medianas de 90g c/u) con huevos revueltos (3), jamón (50g) y queso blanco rallado (50g).", preparation: "1. Preparar la masa de la arepa y cocinarla a la plancha. 2. Hacer los huevos revueltos con el jamón. 3. Rellenar la arepa con el revuelto y el queso.", image: "https://i.postimg.cc/WtRFMYLD/temp-Imagewlm-V9-R.avif" },
+                { time: "11:00", name: "Merienda 1", items: "Yogur griego (200 g), Cambur (1), Miel.", preparation: "1. Verter el yogur en un bol. 2. Añadir el cambur en rodajas. 3. Rociar con un chorrito de miel.", image: "https://i.postimg.cc/rmPtpFfN/temp-Image-RR1-JZ2.avif" },
+                { time: "13:30", name: "Almuerzo", items: "Pechuga de pollo a la plancha (200 g), Arroz blanco (150 g cocido), Brócoli (150 g) y Pimientos al vapor (100 g).", preparation: "1. Sazonar y cocinar el pollo a la plancha. 2. Cocer el arroz. 3. Cocer las verduras al vapor.", image: "https://i.postimg.cc/7hJJJ8c8/temp-Imagen1-Sa-RS.avif" },
+                { time: "17:00", name: "Post-Entrenamiento", items: "Whey Protein (1 medida), Cambur grande (1), Leche (250 ml), Avena (50 g), Mantequilla de maní (1 cda).", preparation: "1. Añadir todos los ingredientes a una licuadora. 2. Mezclar hasta obtener una consistencia suave.", image: "https://i.postimg.cc/vmPvWyPc/tempImagezOI6ZU.avif" },
+                { time: "20:00", name: "Cena", items: "Filete de salmón (180 g), Batata al horno (1 grande), Ensalada de lechuga, tomate y cebolla.", preparation: "1. Hornear el salmón y la batata a 200°C. 2. Preparar la ensalada y aderezar con aceite de oliva y vinagre.", image: "https://i.postimg.cc/bNbL4KvB/temp-Imageydr-YQW.avif" }
+            ]
+        },
+        day2: {
+            title: "Día 2: Entrenamiento de Fuerza",
+            meals: [
+                { time: "08:00", name: "Desayuno", items: "Arepa (1 grande de 180g o 2 medianas de 90g c/u) con carne mechada (150g) y queso amarillo rallado (50g).", preparation: "1. Cocinar la arepa a la plancha. 2. Calentar la carne mechada. 3. Rellenar la arepa con la carne y el queso.", image: "https://i.postimg.cc/g2W4pNXk/temp-Image0-Yizrx.avif" },
+                { time: "11:00", name: "Merienda 1", items: "Yogur griego (200g) con fresas (1 taza / 150g).", preparation: "1. Colocar el yogur en un bol. 2. Añadir las fresas cortadas por encima.", image: "https://i.postimg.cc/mgyjgCC3/temp-Image1-Sr1-Ar.avif" },
+                { time: "13:30", name: "Almuerzo", items: "Bistec de res (200 g), Arroz integral (150 g cocido), Vegetales salteados (Pimentón 50g, Cebolla 50g, Calabacín 100g).", preparation: "1. Sazonar y cocinar el bistec a la plancha. 2. Saltear los vegetales cortados en juliana. 3. Servir con el arroz integral.", image: "https://i.postimg.cc/mrZwzkyv/temp-Imagexa-E5ws.avif" },
+                { time: "17:00", name: "Post-Entrenamiento", items: "Whey Protein (1 medida), Cambur grande (1), Leche (250 ml), Avena (50 g), Mantequilla de maní (1 cda).", preparation: "1. Añadir todos los ingredientes a una licuadora. 2. Mezclar hasta obtener una consistencia suave.", image: "https://i.postimg.cc/vmPvWyPc/tempImagezOI6ZU.avif" },
+                { time: "20:00", name: "Cena", items: "Pechuga de pollo (200 g), Puré de papas (2 unidades medianas), Ensalada de repollo y zanahoria (150g).", preparation: "1. Cocinar el pollo a la plancha. 2. Hervir y machacar las papas para el puré. 3. Preparar la ensalada.", image: "https://i.postimg.cc/4dqbS5RG/temp-Image29j2-IM.avif" }
+            ]
+        },
+        day3: {
+            title: "Día 3: Recuperación Activa",
+            meals: [
+                { time: "09:00", name: "Desayuno", items: "Sándwich de pan integral (2 rebanadas) con jamón (80g) y queso (50g) + Tortilla de 2 huevos.", preparation: "1. Preparar el sándwich. 2. Cocinar la tortilla al gusto. 3. Servir juntos.", image: "https://i.postimg.cc/ydkyjG5n/temp-Imagemd7-VQe.avif" },
+                { time: "12:00", name: "Merienda 1", items: "Manzana (1 unidad), Mantequilla de maní (2 cdas).", preparation: "1. Cortar la manzana en gajos y servir con la mantequilla de maní para untar.", image: "https://i.postimg.cc/QC7kGTjT/tempImagezumIE9.avif" },
+                { time: "14:00", name: "Almuerzo", items: "Pabellón Criollo: Carne mechada (200g), arroz blanco (150g), caraotas negras (100g) y tajadas de plátano maduro (1 unidad).", preparation: "1. Servir en un plato la carne mechada, las caraotas guisadas, el arroz blanco y las tajadas fritas.", image: "https://i.postimg.cc/MZfYjh1p/temp-Imageg9ras-P.avif" },
+                { time: "17:00", name: "Post-Entrenamiento", items: "Whey Protein (1 medida), Cambur grande (1), Leche (250 ml), Avena (50 g), Mantequilla de maní (1 cda).", preparation: "1. Añadir todos los ingredientes a una licuadora. 2. Mezclar hasta obtener una consistencia suave.", image: "https://i.postimg.cc/bY43Czqn/temp-Image5q5-Kw-Q.avif" },
+                { time: "20:00", name: "Cena", items: "Filete de pescado blanco (200 g), Espárragos a la plancha (150g), Arroz (pequeña porción, 80 g cocida).", preparation: "1. Cocinar el pescado al vapor u horno. 2. Saltear los espárragos. 3. Servir con la porción de arroz.", image: "https://i.postimg.cc/Qxpkf14L/temp-Image-Pduua-C.avif" }
+            ]
+        },
+        day4: {
+            title: "Día 4: Alta Intensidad",
+            meals: [
+                { time: "08:00", name: "Desayuno", items: "Arepa (1 grande de 180g o 2 medianas de 90g c/u) con huevos revueltos (3) y salchichas (2 unidades).", preparation: "1. Cocinar la arepa. 2. Preparar los huevos revueltos. 3. Guisar las salchichas en salsa de tomate. 4. Rellenar la arepa.", image: "https://i.postimg.cc/mgj3sRW8/temp-Imageg-Jh-Jfq.avif" },
+                { time: "11:00", name: "Merienda 1", items: "Galletas de arroz (4 unidades) con mermelada y un puñado de pasas (30g).", preparation: "1. Untar la mermelada sobre las galletas de arroz. 2. Acompañar con las pasas.", image: "https://i.postimg.cc/nhpKgrgX/temp-Imager-Gp-RFf.avif" },
+                { time: "13:30", name: "Almuerzo", items: "Pasta integral o normal (150 g en seco) con pechuga de pollo en dados (200 g) y salsa de tomate casera.", preparation: "1. Cocinar la pasta. 2. Cocinar el pollo y mezclar con la salsa. 3. Servir sobre la pasta.", image: "https://i.postimg.cc/hG39Xrjm/temp-Image-RSqp-Qe.avif" },
+                { time: "17:00", name: "Post-Entrenamiento", items: "Whey Protein (1 medida), Cambur grande (1), Leche (250 ml), Avena (50 g), Mantequilla de maní (1 cda).", preparation: "1. Añadir todos los ingredientes a una licuadora. 2. Mezclar hasta obtener una consistencia suave.", image: "https://i.postimg.cc/vmPvWyPc/tempImagezOI6ZU.avif" },
+                { time: "20:00", name: "Cena", items: "Filetes de pechuga de pollo (200 g), Arroz blanco (150 g cocido), Ensalada de tomate y pepino (200g).", preparation: "1. Cocinar el pollo a la plancha. 2. Servir con arroz y la ensalada fresca.", image: "https://i.postimg.cc/xj66KK46/temp-Imageu-MFFPF.avif" }
+            ]
+        },
+        day5: {
+            title: "Día 5: Pre-Partido (MD-1)",
+            meals: [
+                { time: "08:00", name: "Desayuno", items: "Sándwich de pan blanco (2 rebanadas) con jamón (80g), queso (50g) y otros embutidos (50g).", preparation: "1. Armar el sándwich con los embutidos, jamón y queso. Puede ser frío o a la plancha.", image: "https://i.postimg.cc/DZJ1LXJM/temp-Image7-Th-W7o.avif" },
+                { time: "11:00", name: "Merienda 1", items: "Yogur bajo en grasa (150 g) con  frutas al gusto.", preparation: "1. Mezclar el yogur con las frutasen un bol.", image: "https://i.postimg.cc/Dz3625Sw/temp-Imageu-Xx-ZYZ.avif" },
+                { time: "13:30", name: "Almuerzo", items: "Pescado blanco (180 g), Papas al vapor (porción grande, ~300 g), Zanahorias al vapor (150g).", preparation: "1. Hornear o cocer al vapor el pescado blanco. 2. Hervir las papas y las zanahorias hasta que estén tiernas.", image: "https://i.postimg.cc/gj3RBbKy/temp-Image-E0-H78-U.avif" },
+                { time: "17:00", name: "Merienda 2", items: "Barrita de cereales baja en fibra (1 unidad), Cambur (1 unidad).", preparation: "1. Consumir juntos.", image: "https://i.postimg.cc/BQG2Ptqm/temp-Imagen90q1-X.avif" },
+                { time: "20:00", name: "Cena", items: "Pechuga de pollo (150 g), Pasta blanca (120 g en seco), Salsa de tomate ligera.", preparation: "1. Cocinar la pechuga de pollo a la plancha. 2. Hervir la pasta blanca y servirla con la salsa de tomate y el pollo.", image: "https://i.postimg.cc/nVmvLqts/temp-Image0yt-R2-L.avif" }
+            ]
+        },
+        day6: {
+            title: "Día 6: Día de Partido",
+            meals: [
+                { time: "09:00", name: "Desayuno", items: "Hotcakes (3) con sirope, huevos revueltos (3), jamón (50g) y queso (50g).", preparation: "1. Preparar los hotcakes. 2. Hacer los huevos revueltos con jamón y queso. 3. Servir todo junto.", image: "https://i.postimg.cc/5t53jvzq/temp-Imagepky-QWO.avif" },
+                { time: "12:00", name: "Comida Pre-Partido", items: "Pechuga de pollo (120 g), Arroz blanco o pasta larga (porción generosa), ensalada mixta al gusto.", preparation: "1. Cocinar el pollo a la plancha. 2. Hervir el arroz blanco. 3. Preparar la ensalada de su preferencia para acompañar la preparacion", image: "https://i.postimg.cc/xj66KK46/temp-Imageu-MFFPF.avif" },
+                { time: "14:00", name: "Snack Pre-Partido", items: "Bowl de yogurt con frutas al gusto o 1 Sandwich ligero", preparation: "1. Consumir 3h antes del partido para una última recarga de energía.", image: "https://i.postimg.cc/Dz3625Sw/temp-Imageu-Xx-ZYZ.avif" },
+                { time: "15:45", name: "Durante el Partido", items: "Bebida isotónica, gel energético, miel, cambur", preparation: "1. Consumir en el descanso para reponer líquidos, electrolitos y carbohidratos.", image: "https://i.postimg.cc/8P3wYTDW/temp-Image9-T75dz.avif" },
+                { time: "17:00", name: "Post-Partido", items: "Whey Protein (1 medida), Cambur grande (1), Leche (250 ml), Avena (50 g), Mantequilla de maní (1 cda).", preparation: "1. Licuar todos los ingredientes y consumir inmediatamente para iniciar la recuperación.", image: "https://i.postimg.cc/vmPvWyPc/tempImagezOI6ZU.avif" },
+                { time: "19:30", name: "Cena Post-Partido", items: "Pizza casera o Pasta con carne molida magra.", preparation: "1. Usar ingredientes frescos y magros para una comida reconfortante y rica en carbohidratos/proteínas.", image: "https://i.postimg.cc/QtXq7tkL/temp-Imagew-Lxd-Jo.avif" }
+            ]
+        },
+        day7: {
+            title: "Día 7: Post-Partido (MD+1)",
+            meals: [
+                { time: "09:00", name: "Desayuno", items: "Empanada de maíz horneada (2 unidades) de carne mechada o pollo mechado.", preparation: "1. Rellenar los discos de masa de maíz con el guiso de carne o pollo. 2. Hornear a 180°C hasta que estén doradas.", image: "https://i.postimg.cc/26277D21/temp-Imaged-Ej8f-Z.avif" },
+                { time: "12:00", name: "Merienda 1", items: "Batido: Whey Protein (1 medida), Espinacas (un puñado), Piña (1 taza en trozos), Jengibre fresco.", preparation: "1. Añadir todos los ingredientes a la licuadora y mezclar hasta obtener un batido suave.", image: "https://i.postimg.cc/pTXDTSRR/temp-Imagehqyh-UR.avif" },
+                { time: "14:00", name: "Almuerzo", items: "Pollo a la parrilla (200g), Tostones (1 plátano verde), y Ensalada de Aguacate con Tomate y Cebolla.", preparation: "1. Sazonar y cocinar el pollo en una parrilla o plancha. 2. Freír los tostones. 3. Picar los vegetales y el aguacate para la ensalada y aderezar con limón.", image: "https://i.postimg.cc/yxGh2TqB/temp-Image-B2l-Bzh.avif" },
+                { time: "17:00", name: "Merienda 2", items: "Cerezas (un puñado) o Zumo de cereza ácida (1 vaso), Almendras (un puñado, 30g).", preparation: "1. Consumir las cerezas (o el zumo) junto con las almendras para un snack antiinflamatorio.", image: "https://i.postimg.cc/PJJz6RR2/temp-Image-JBvhg7.avif" },
+                { time: "20:00", name: "Cena", items: "Ensalada César grande con tiras de pechuga de pollo a la plancha (180g) y crutones integrales.", preparation: "1. Cocinar el pollo a la plancha y cortar en tiras. 2. Mezclar con lechuga romana, aderezo César bajo en grasa, queso parmesano y crutones.", image: "https://i.postimg.cc/cH9f8cLY/temp-Image4-Qbt-ZG.avif" }
+            ]
+        }
+    };
+    
+    const arsenalData = {
+        batidos: {
+            title: "Batidos de Recuperación de Alto Impacto",
+            items: [
+                { name: "Potencia de Cambur y Maní", ingredients: "1.5 cambures, 250ml leche, 1 medida Whey Protein, 1 cda mantequilla de maní, 30g avena.", image: "https://i.postimg.cc/XN1gZnrh/temp-Image-INynva.avif" },
+                { name: "Recuperación de Frutos Rojos", ingredients: "150g yogur griego, 1 taza frutos rojos, 200ml leche, 1 cda miel, 1 medida Whey Protein.", image: "https://i.postimg.cc/3xmjbpt5/temp-Image-CRKjps.avif" },
+                { name: "Impulso Tropical de Mango", ingredients: "1 mango, zumo de 2 naranjas, 200ml agua, 1 medida Whey Protein, jengibre (opcional).", image: "https://i.postimg.cc/QxRkbSkJ/temp-Imageg-Dd-En4.avif" },
+                { name: "Fuerza de Cacao", ingredients: "250ml leche, 1/2 aguacate, 2 cdas cacao, nueces, 1 medida Whey Protein chocolate.", image: "https://i.postimg.cc/5tmBfJcs/temp-Image1-Wd-JXp.avif" },
+                { name: "Energía Pre-Partido", ingredients: "200ml leche, 1 cambur o frutas variadas al gusto, 1 cda crema de maní.", image: "https://i.postimg.cc/s2zPFXLB/temp-Imageu-BPSf-N.avif" },
+                { name: "Detox Verde (Recuperación)", ingredients: "Batido: Whey Protein (1 medida), Espinacas (un puñado), Piña (1 taza en trozos), Jengibre fresco.", image: "https://i.postimg.cc/pTXDTSRR/temp-Imagehqyh-UR.avif" }
+            ]
+        },
+        ensaladas: {
+            title: "Ensaladas de Rendimiento Densas en Nutrientes",
+            items: [
+                { name: "César con Pollo", ingredients: "150g pollo, lechuga romana, crutones, queso parmesano. Aderezo César ligero.", image: "https://i.postimg.cc/TYyJgBmP/temp-Imagec-BKRs-W.avif" },
+                { name: "Griega con Pollo", ingredients: "150g pollo, pepino, tomate, cebolla morada, queso feta, aceitunas. Aderezo de limón y orégano.", image: "https://i.postimg.cc/90sTLFTQ/temp-Image-Idlf-Gb.avif" },
+                { name: "De Pollo y Aguacate", ingredients: "150g pollo, 1 aguacate, maíz, cilantro, pimentón. Aderezo de yogur y lima.", image: "https://i.postimg.cc/ryHSVgb2/temp-Image9-EXm-Qw.avif" },
+                { name: "De Pollo al Curry", ingredients: "150g pollo, zanahoria, manzana. Aderezo de yogur y curry.", image: "https://i.postimg.cc/YqmQhYKG/temp-Imageq-Z3c1-Y.avif" },
+                { name: "Fresca Post-Partido", ingredients: "150g pollo, maíz, pepino, lechuga. Aderezo de aguacate y yogur.", image: "https://i.postimg.cc/JzNJQ8hR/temp-Image9h8-QKb.avif" },
+                { name: "Caprese de Recuperación", ingredients: " tomate, mozzarella, 100g pollo en tiras, albahaca.", image: "https://i.postimg.cc/VNztGhSn/temp-Image-MU3-Gl-T.avif" }
+            ]
+        },
+        infusiones: {
+            title: "Tés e Infusiones Antiinflamatorias",
+            items: [
+                { name: "Té de Cúrcuma y Jengibre", ingredients: "Potente antiinflamatorio y digestivo.", image: "https://i.postimg.cc/JhKk9QJg/temp-Image-Llh-EHd.avif" },
+                { name: "Té Verde con Limón", ingredients: "Rico en antioxidantes que combaten el estrés oxidativo.", image: "https://i.postimg.cc/sgd7Sxsn/temp-Imagea-P63-MO.avif" },
+                { name: "Infusión de Manzanilla y Menta", ingredients: "Relajante muscular y digestivo, calma el sistema nervioso.", image: "https://i.postimg.cc/FRRLmJVK/temp-Image-Kshz-Ta.avif" },
+                { name: "Infusión de Romero", ingredients: "Propiedades antiespasmódicas y antiinflamatorias.", image: "https://i.postimg.cc/KzGp7Qr8/temp-Imagef0-WIv-K.avif" }
+            ]
+        },
+        especias: {
+            title: "El Especiero Funcional del Atleta",
+            items: [
+                { name: "Cúrcuma", ingredients: "Potente antiinflamatorio. Usar siempre con pimienta negra.", image: "https://i.postimg.cc/2SdxHh5b/temp-Imagev-AIpn-W.avif" },
+                { name: "Jengibre", ingredients: "Antiinflamatorio y digestivo. Ideal en salteados, sopas y tés.", image: "https://i.postimg.cc/SKyfHRXZ/temp-Image-F50g-RP.avif" },
+                { name: "Canela", ingredients: "Ayuda a regular el azúcar en sangre. Perfecta en avena y yogur.", image: "https://i.postimg.cc/9fJY22Zc/temp-Image25-WI6t.avif" },
+                { name: "Pimienta Negra", ingredients: "Mejora la absorción de otros nutrientes, como la curcumina.", image: "https://i.postimg.cc/Px7bLMSc/temp-Image-LOUO2-F.avif" },
+                { name: "Onoto (Annatto)", ingredients: "Rico en antioxidantes, usado para dar color y sabor a las comidas.", image: "https://i.postimg.cc/xC8yTZ3M/temp-Image-V7ra-JU.avif" }
+            ]
+        }
+    };
+    
+    const suplementosData = [
+        { name: 'Monohidrato de Creatina', func: 'Aumenta la potencia explosiva y la capacidad de sprint repetido.', protocol: 'Mantenimiento: 3-5 g/día.' },
+        { name: 'Beta-Alanina', func: 'Actúa como un tampón contra la acidez muscular, retrasando la fatiga.', protocol: 'Mantenimiento: 3.2-4 g/día (divididos).' },
+        { name: 'Whey Protein', func: 'Estimula la reparación muscular y facilita la recuperación post-ejercicio.', protocol: '25-30 g por porción, post-entrenamiento/partido.' },
+        { name: 'Vitamina D3', func: 'Esencial para la salud ósea, la función inmunológica y muscular.', protocol: '2000-4000 UI/día (confirmar con análisis).' },
+        { name: 'Ácidos Grasos Omega-3', func: 'Potentes efectos antiinflamatorios, apoyan la salud articular y cognitiva.', protocol: '2-3 g combinados de EPA/DHA por día.' },
+        { name: 'Cafeína (Uso Táctico)', func: 'Reduce la percepción de fatiga y aumenta el estado de alerta.', protocol: '3 mg/kg (aprox. 280 mg), 45-60 min antes del esfuerzo.' }
+    ];
+
+    const principiosData = [
+        { title: "El Futbolista como Atleta de Alta Demanda", content: "El gasto energético diario de un futbolista de élite se sitúa entre 3,442 y 3,824 kcal. Esta elevada demanda se debe a la naturaleza intermitente del deporte, que combina períodos de baja actividad con explosiones repetidas de máxima potencia. Esto dicta una dependencia primordial de los carbohidratos para la alta intensidad y las grasas para la recuperación." },
+        { title: "La Primacía de los Carbohidratos", content: "Son el macronutriente más crítico. Funcionan como la fuente de energía más eficiente para la contracción muscular y la función cognitiva. Niveles bajos de glucógeno muscular se correlacionan directamente con una disminución del rendimiento. La estrategia de élite es la Periodización Nutricional, ajustando la ingesta de carbohidratos (de 5 a 10 g/kg) para que coincida con la carga de entrenamiento diaria." },
+        { title: "Proteína: La Arquitecta de la Recuperación", content: "Su función principal es facilitar la Síntesis de Proteínas Musculares, reparando las microlesiones del entrenamiento. El consenso científico para futbolistas de alto nivel es de 1.6 a 2.2 g/kg por día, esencial para sostener la masa muscular y optimizar la recuperación." },
+        { title: "Grasas y Micronutrientes: Los Héroes Anónimos", content: "Las grasas saludables son cruciales para la producción de hormonas y la modulación de la inflamación, con especial énfasis en los Omega-3. Micronutrientes como el hierro (transporte de oxígeno), la vitamina D y el calcio (salud ósea y muscular) son vitales y se aseguran con una dieta variada." }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.content-section');
+        const dayTabsContainer = document.querySelector('#plan .gap-2');
+        const mealPlansContainer = document.getElementById('meal-plans-container');
+        
+        const arsenalTabsContainer = document.querySelector('#arsenal .flex-wrap');
+        const arsenalContainer = document.getElementById('arsenal-container');
+        
+        const suplementosTableBody = document.getElementById('suplementos-table-body');
+        const principiosContainer = document.getElementById('principios-container');
+
+        function switchSection(hash) {
+            navLinks.forEach(link => {
+                link.classList.toggle('active', link.hash === hash);
+            });
+            sections.forEach(section => {
+                section.classList.toggle('active', `#${section.id}` === hash);
+            });
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchSection(e.target.hash);
+            });
+        });
+        
+        if (window.location.hash) {
+            switchSection(window.location.hash);
+        } else {
+            switchSection('#resumen');
+        }
+
+        function renderMealPlan(day) {
+            const plan = mealPlans[day];
+            if (!plan) return;
+            
+            let html = `<div class="bg-gray-700/50 p-4 rounded-lg">
+                <h3 class="text-2xl sm:text-3xl font-bold text-center text-white mb-6">${plan.title}</h3>
+                <div class="space-y-8">`;
+                
+            plan.meals.forEach(meal => {
+                html += `
+                    <div class="bg-gray-800/60 p-4 rounded-lg">
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="text-xl sm:text-2xl font-bold text-emerald-400">${meal.name}</p>
+                            <p class="text-base sm:text-lg font-semibold text-gray-400">${meal.time}</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="sm:w-1/3 flex-shrink-0">
+                                <img src="${meal.image}" alt="${meal.name}" class="rounded-md w-full h-full object-cover">
+                            </div>
+                            <div class="sm:w-2/3">
+                                <div>
+                                    <h4 class="text-lg sm:text-xl font-semibold text-white border-b border-gray-700 mb-1">Ingredientes:</h4>
+                                    <p class="text-base sm:text-lg text-gray-300 mb-2">${meal.items}</p>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg sm:text-xl font-semibold text-white border-b border-gray-700 mb-1">Preparación:</h4>
+                                    <p class="text-base sm:text-lg text-gray-300">${meal.preparation}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div></div>`;
+            mealPlansContainer.innerHTML = html;
+        }
+
+        dayTabsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('day-tab')) {
+                dayTabsContainer.querySelector('.active').classList.remove('active');
+                e.target.classList.add('active');
+                renderMealPlan(e.target.dataset.day);
+            }
+        });
+        
+        function renderArsenalContent(category) {
+            const content = arsenalData[category];
+            if(!content) return;
+            
+            let html = `<div class="bg-gray-700/50 p-4 rounded-lg">
+                <h3 class="text-2xl sm:text-3xl font-bold mb-4 text-white">${content.title}</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+            
+            content.items.forEach(item => {
+                html += `
+                    <div class="bg-gray-900/50 rounded-md overflow-hidden flex flex-col">
+                        <img src="${item.image}" alt="${item.name}" class="w-full h-40 object-cover">
+                        <div class="p-4 flex flex-col flex-grow">
+                            <p class="text-lg sm:text-xl font-bold text-emerald-400">${item.name}</p>
+                            <p class="text-gray-300 mt-1 flex-grow text-base sm:text-lg">${item.ingredients}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div></div>`;
+            arsenalContainer.innerHTML = html;
+        }
+
+        arsenalTabsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('day-tab')) {
+                arsenalTabsContainer.querySelector('.active').classList.remove('active');
+                e.target.classList.add('active');
+                renderArsenalContent(e.target.dataset.day);
+            }
+        });
+        
+        suplementosData.forEach(sup => {
+            suplementosTableBody.innerHTML += `
+                <tr>
+                    <td data-label="Suplemento" class="p-2 sm:p-4 font-bold text-emerald-300">${sup.name}</td>
+                    <td data-label="Función" class="p-2 sm:p-4">${sup.func}</td>
+                    <td data-label="Protocolo" class="p-2 sm:p-4 font-semibold text-white">${sup.protocol}</td>
+                </tr>
+            `;
+        });
+        
+        principiosData.forEach(p => {
+            principiosContainer.innerHTML += `
+                <div>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-emerald-400 mb-2">${p.title}</h3>
+                    <p>${p.content}</p>
+                </div>
+            `;
+        });
+
+        const ctx = document.getElementById('macroChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Carbohidratos', 'Proteínas', 'Grasas'],
+                datasets: [{
+                    label: '% del GET',
+                    data: [68, 20, 12],
+                    backgroundColor: [
+                        'rgba(52, 152, 219, 0.8)',
+                        'rgba(231, 76, 60, 0.8)',
+                        'rgba(241, 196, 15, 0.8)'
+                    ],
+                    borderColor: [
+                        '#3498db',
+                        '#e74c3c',
+                        '#f1c40f'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#e5e7eb',
+                            font: {
+                                size: 14,
+                                family: 'Teko, sans-serif'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+        
+        renderMealPlan('day1');
+        renderArsenalContent('batidos');
+    });
+</script>
+
+</body>
+</html>
+
